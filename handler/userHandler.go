@@ -29,11 +29,7 @@ func (usrHandler *UserHandler)GetUsers(cxt *gin.Context){
 		log.Fatal(e)
 	}
 
-	usr,er:= json.MarshalIndent(users,"","/t/t")
-	if er!=nil{
-		log.Fatal(e)
-	}
-	cxt.JSON(200,string(usr))
+	cxt.JSON(200,users)
 
 }
 
@@ -58,15 +54,12 @@ func(usrHandler *UserHandler) CreateUser(cxt *gin.Context){
 	var	usr entity.User
 
 	cxt.BindJSON(&usr)
-	usrHandler.userSrv.CreateUser(entity.User(usr))
+	user,ers:= usrHandler.userSrv.CreateUser(entity.User(usr))
 
-	user,err:=  json.MarshalIndent(usr,"","/r/r")
-
-	if err!=nil {
-		log.Fatal(err)
+	if len(ers)> 0 {
+		log.Fatal(ers)
 	}
-
-	cxt.JSON(200,string(user))
+	cxt.JSON(200,user)
 }
 
 func(usrHandler *UserHandler) UpdateUser(cxt * gin.Context){
@@ -88,18 +81,27 @@ func(usrHandler *UserHandler) UpdateUser(cxt * gin.Context){
 	if ers!=nil {
 		log.Fatal(ers)
 	}
-	ursMarsh,_:=json.MarshalIndent(user,"","/t/")
 
-	cxt.JSON(200,ursMarsh)
-
-
-
-
-	
+	cxt.JSON(200,user)
 
 }
 
 func(usrHandler *UserHandler) DeleteUser(cxt * gin.Context){
+
+	cxt.Header("Content-Type","application/json")
+	var	usr entity.User
+
+	id,e:=strconv.Atoi(cxt.Param("id"))
+	if e!=nil {
+		log.Fatal(e)
+	}
+	cxt.BindJSON(&usr)
+	user,ers:= usrHandler.userSrv.DeleteUser(uint(id))
+
+	if len(ers)> 0 {
+		log.Fatal(ers)
+	}
+	cxt.JSON(200,user)
 
 }
 
