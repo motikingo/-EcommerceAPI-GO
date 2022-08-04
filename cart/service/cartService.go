@@ -1,4 +1,4 @@
-package service
+package cartService
 
 import (
 	"github.com/motikingo/ecommerceRESTAPI-Go/cart"
@@ -9,7 +9,7 @@ type CartServ struct{
 	repo cart.CartRepository
 }
 
-func NewCartRepo(repo cart.CartRepository) cart.CartService{
+func NewCartServ(repo cart.CartRepository) cart.CartService{
 	return &CartServ{repo:repo}
 }
 

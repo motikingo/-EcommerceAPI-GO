@@ -1,5 +1,4 @@
-package repository
-
+package cartRepository
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/motikingo/ecommerceRESTAPI-Go/cart"

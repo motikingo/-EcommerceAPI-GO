@@ -1,4 +1,4 @@
-package repository
+package catagoryRepository
 
 import (
 	"log"
@@ -12,7 +12,7 @@ import (
 type CatRepo struct{
 	db *gorm.DB
 }
-func NewUsrRepo(db *gorm.DB)catagory.CatagoryRepository{
+func NewCatagoryRepo(db *gorm.DB)catagory.CatagoryRepository{
 	return &CatRepo{db:db}
 }
 

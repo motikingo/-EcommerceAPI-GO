@@ -4,7 +4,7 @@ import (
 	//"fmt"
 	"log"
 	//"net/http"
-	"encoding/json"
+	//"encoding/json"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -102,6 +102,4 @@ func(usrHandler *UserHandler) DeleteUser(cxt * gin.Context){
 		log.Fatal(ers)
 	}
 	cxt.JSON(200,user)
-
 }
-
