@@ -29,7 +29,7 @@ func(itemsrv *ItemServ)GetItem(id uint)(*entity.Item,[]error){
 	}
 	return item,nil
 }
-func(itemsrv *ItemServ)UpdateItem(id uint,item entity.Item)(*entity.Item,[]error){
+func(itemsrv *ItemServ)UpdateItem(item entity.Item)(*entity.Item,[]error){
 
 	itm,ers:= itemsrv.repo.UpdateItem(id,item)
 	if len(ers)>0{
