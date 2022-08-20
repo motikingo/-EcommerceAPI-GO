@@ -2,15 +2,20 @@ package handler
 
 import (
 	//"log"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
 	"github.com/motikingo/ecommerceRESTAPI-Go/item"
+	"github.com/motikingo/ecommerceRESTAPI-Go/catagory"
+
 )
 
 type ItemHandler struct{
 	itemServ item.ItemService
+	sessioHa *SessionHandler
+	cataSrv catagory.CatagoryService
 }
 
 func NewItemHandler(itemServ item.ItemService)ItemHandler{
@@ -173,6 +178,7 @@ func (itemHandler *ItemHandler)UpdateItem(ctx *gin.Context){
 	response := &struct{
 		status string
 		item *entity.Item
+		catagorySrv *
 	}{
 		status:"Unauthorized user"
 	}
@@ -251,8 +257,13 @@ func (itemHandler *ItemHandler)DeleteItem(ctx *gin.Context){
 		cxt.IndentedJSON(http.StatusUnathorized,response)
 		return
 	}
-
-	id,_:= strconv.Atoi(ctx.Param("id"))
+	var item_Id string
+	id,e:= strconv.Atoi(ctx.BindJSON(item_Id))
+	if e != nil || id == nil{
+		response.status = "Incorrect Format..." 
+		cxt.IndentedJSON(http.StatusBadRequest,response)
+		return
+	}
 
 	itm,ers:= itemHandler.itemServ.Item(uint(id))
 	if len(ers)>0{
@@ -260,11 +271,37 @@ func (itemHandler *ItemHandler)DeleteItem(ctx *gin.Context){
 		cxt.IndentedJSON(http.StatusUnathorized,response)
 		return
 	}
+	
 	itm,ers:= itemHandler.itemServ.DeleteItem(uint(id))
 	if ers != nil{
 		response.status = "Internal Server Error ..."
 		cxt.IndentedJSON(http.StatusInternalServerError,response)
 		return
+	}
+	catagories,ers:= itemHandler.cataSrv.GetCatagories()
+	if ers != nil{
+		response.status = "Internal Server Error ..."
+		cxt.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
+
+	for _,cata := range catagories{
+		check := false
+		for _,itm_Id := range cata.Items_Id{
+			if itm_Id != itm.ID{
+				cata.Items_Id = append(cata.Items_Id, itm_Id)
+			}else{
+				check = true
+			}
+		}
+		if check{
+			cat,ers := itemHandler.cataSrv.UpdateCatagory(cata)
+			if len(ers)>0{
+				response.status = "Internal Server Error ..."
+				cxt.IndentedJSON(http.StatusInternalServerError,response)
+				return
+			}
+		}
 	}
 	response.status = "Delete successful"
 	response.item = itm

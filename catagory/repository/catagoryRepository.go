@@ -44,7 +44,8 @@ func(usrRepo *CatRepo)UpdateCatagory(id uint,ct entity.Catagory) (*entity.Catago
 	}
 	cat.Name = ct.Name
 	cat.Description = ct.Description
-	cat.Items = ct.Items 
+	cat.Image = ct.Image
+	cat.Items_Id = ct.Items_Id 
 
 	ers = usrRepo.db.Save(&cat).GetErrors()
 	if len(ers)>0{

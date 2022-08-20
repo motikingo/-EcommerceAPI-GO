@@ -32,6 +32,15 @@ func(carRepo *CartRepo)GetCart(id uint)(*entity.Cart,[]error){
 	}
 	return &cart,err
 }
+func(carRepo *CartRepo)GetCartByUserID(user_Id uint)*entity.Cart{
+	var cart entity.Cart
+	err := carRepo.db.First(&cart,user_Id).GetErrors()
+	if len(err)>0{
+		return nil
+	}
+	return &cart
+}
+
 func(carRepo *CartRepo)UpdateCart(id uint,car entity.Cart)(*entity.Cart,[]error){
 
 	cart,ers:= carRepo.GetCart(id)

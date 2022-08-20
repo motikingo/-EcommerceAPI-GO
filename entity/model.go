@@ -19,6 +19,7 @@ type Customer struct{
 type Catagory struct{
 	gorm.Model
 	Name string `json:"name"`
+	Image string 	`json:"image"`
 	Description string `json:"description"`
 	Items_Id []uint		`json:"items_Id"`
 }
@@ -38,7 +39,7 @@ type Item struct{
 
 type Cart struct{
 	gorm.Model
-	CustomerId uint `json:"customer_id"`
+	UserId uint	`json:user_Id`
 	Items []uint 	`json:"items"`
 }
 

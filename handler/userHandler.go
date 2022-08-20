@@ -10,11 +10,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
 	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
+	"github.com/motikingo/ecommerceRESTAPI-Go/item"
+	"github.com/motikingo/ecommerceRESTAPI-Go/cart"
+
+
 )
 
 type UserHandler struct {
 
 	userSrv user.UserService
+	itemSrv item.ItemService
+	cartsrv cart.CartService
 	sessionHa *SessionHandler
 }
 
@@ -257,8 +263,80 @@ func(usrHandler *UserHandler)ChangePassword(cxt * gin.Context){
 
 }
 
-func(usrHandler *UserHandler) DeleteAccount(cxt * gin.Context){
+func(usrHandler *UserHandler) AddItemToMyCart(cxt * gin.Context){
+	cxt.Header("Content-Type","application/json")
+	response := &struct{
+		status string
+		
+	}{
+		status:"Unauthorized user"
+	}
+	input := &struct{
+		item_Id uint
+		howMany int
+	}{}
+	
+	sess := ursHandler.sessionHa.GetSession(r)
+	if sess != nil {
+		cxt.IndentedJSON(http.StatusUnathorized,response)
+		return
+	}	
 
+	if er = cxt.BindJSON(&input); er!=nil{
+		response.status = "bad request..." 
+		cxt.IndentedJSON(cxt.StatusBadRequest,response)
+		return
+	}
+
+	if input.item_Id == nil || input.howMany<1{
+		response.status = "Invalid Input..." 
+		cxt.IndentedJSON(cxt.StatusBadRequest,response)
+		return
+	} 
+	item,ers := usrHandler.itemSrv.GetItem(input.item_Id)
+	
+	if len(ers)>0{
+		response.status = "No such Item exist"
+		cxt.IndentedJSON(cxt.StatusBadRequest,response)
+		return
+	}
+
+	if item.Number < input.howMany{
+		response.status = "Appology we run out of Item for now"
+		cxt.IndentedJSON(cxt.StatusOK,response)
+		return
+	}
+
+	cart := usrHandler.cartsrv.GetCartByUserID(sess.User_Id)
+
+	if cart == nil{
+		response.status = "Add cart first please..." 
+		cxt.IndentedJSON(cxt.StatusBadRequest,response)
+		return
+	}
+	cart.Items = append(cart.Items,item)
+
+	cart,ers = usrHandler.cartsrv.UpdateCart(cart)
+
+	if len(ers)>0{
+		response.status = "Internal Server Error"
+		cxt.IndentedJSON(cxt.StatusInternalServerError,response)
+		return
+	}
+
+	item.Number  = item.Number - input.howMany
+	item,ers = usrHandler.itemSrv.UpdateItem(*item)
+
+	if len(ers)>0{
+		cart.Items = cart_Items[:len(cart.Items)-2]
+		response.status = "Internal Server Error"
+		cxt.IndentedJSON(cxt.StatusInternalServerError,response)
+		return
+	}
+}
+
+
+func(usrHandler *UserHandler) DeleteAccount(cxt * gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
 		status string
@@ -267,7 +345,6 @@ func(usrHandler *UserHandler) DeleteAccount(cxt * gin.Context){
 	}{
 		status:"Unauthorized user"
 	}
-
 	sess := ursHandler.sessionHa.GetSession(r)
 	if sess != nil {
 		cxt.IndentedJSON(http.StatusUnathorized,response)
