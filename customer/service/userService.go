@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
-	"github.com/motikingo/ecommerceRESTAPI-Go/user"
+	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
 )
 
 type UserSrvc struct{
@@ -13,7 +13,7 @@ func NewUserSrvc(repo user.UserRepository) user.UserService{
 	return &UserSrvc{repo:repo}
 }
 
-func(usrRepo *UserSrvc) GetUsers()([]entity.User,[]error){
+func(usrRepo *UserSrvc) GetUsers()([]entity.Customer,[]error){
 	users,errs:= usrRepo.repo.GetUsers()
 
 	if  len(errs)>0 {
@@ -24,7 +24,8 @@ func(usrRepo *UserSrvc) GetUsers()([]entity.User,[]error){
 
 }
 
-func(usrRepo *UserSrvc)  GetUser(id uint)(*entity.User,[]error){
+
+func(usrRepo *UserSrvc)  GetUser(id uint)(*entity.Customer,[]error){
 	
 	user,errs:= usrRepo.repo.GetUser(id)
 
@@ -35,7 +36,15 @@ func(usrRepo *UserSrvc)  GetUser(id uint)(*entity.User,[]error){
 	return user,nil
 }
 
-func(usrRepo *UserSrvc) CreateUser(user entity.User)(*entity.User,[]error){
+func(usrRepo *UserSrvc)GetUserByUserName(name string) *entity.Customer{
+	user := usrRepo.repo.GetUserByUserName(name)
+	return user
+}
+func(usrRepo *UserSrvc)GetUserByEmail(email string)bool{	
+	return usrRepo.repo.GetUserByEmail(email)
+}
+
+func(usrRepo *UserSrvc) CreateUser(user entity.Customer)(*entity.Customer,[]error){
 	
 	usr,errs:= usrRepo.repo.CreateUser(user)
 
@@ -46,8 +55,8 @@ func(usrRepo *UserSrvc) CreateUser(user entity.User)(*entity.User,[]error){
 	return usr,nil
 }
 
-func(usrRepo *UserSrvc) UpdateUser(id uint,user entity.User)(*entity.User,[]error){
-	usr,errs:= usrRepo.repo.UpdateUser(id,user)
+func(usrRepo *UserSrvc) UpdateUser(user entity.Customer)(*entity.Customer,[]error){
+	usr,errs:= usrRepo.repo.UpdateUser(user)
 
 	if  len(errs)>0 {
 		return nil,errs
@@ -56,7 +65,7 @@ func(usrRepo *UserSrvc) UpdateUser(id uint,user entity.User)(*entity.User,[]erro
 	return usr,nil
 }
 
-func(usrRepo *UserSrvc) DeleteUser(id uint)(*entity.User,[]error){
+func(usrRepo *UserSrvc) DeleteUser(id uint)(*entity.Customer,[]error){
 	user,errs:= usrRepo.repo.DeleteUser(id)
 
 	if  len(errs)>0 {

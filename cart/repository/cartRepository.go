@@ -41,9 +41,9 @@ func(carRepo *CartRepo)GetCartByUserID(user_Id uint)*entity.Cart{
 	return &cart
 }
 
-func(carRepo *CartRepo)UpdateCart(id uint,car entity.Cart)(*entity.Cart,[]error){
+func(carRepo *CartRepo)UpdateCart(car entity.Cart)(*entity.Cart,[]error){
 
-	cart,ers:= carRepo.GetCart(id)
+	cart,ers:= carRepo.GetCart(car.ID)
 
 	if len(ers)>0 {
 		return nil,ers

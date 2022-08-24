@@ -36,8 +36,8 @@ func(carServ *CartServ)GetCart(id uint)(*entity.Cart,[]error){
 func(carServ *CartServ)GetCartByUserID(user_Id uint)*entity.Cart{
 	return carServ.repo.GetCartByUserID(user_Id)
 }
-func(carServ *CartServ)UpdateCart(id uint,car entity.Cart)(*entity.Cart,[]error){
-	cart,ers := carServ.repo.UpdateCart(id,car)
+func(carServ *CartServ)UpdateCart(car entity.Cart)(*entity.Cart,[]error){
+	cart,ers := carServ.repo.UpdateCart(car)
 
 	if len(ers)>0 {
 		return nil,ers

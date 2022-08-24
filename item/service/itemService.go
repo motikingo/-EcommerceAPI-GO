@@ -29,9 +29,14 @@ func(itemsrv *ItemServ)GetItem(id uint)(*entity.Item,[]error){
 	}
 	return item,nil
 }
+
+func(itemsrv *ItemServ)IsItemNameExist(name string) *entity.Item{
+	return itemsrv.repo.IsItemNameExist(name)
+}
+
 func(itemsrv *ItemServ)UpdateItem(item entity.Item)(*entity.Item,[]error){
 
-	itm,ers:= itemsrv.repo.UpdateItem(id,item)
+	itm,ers:= itemsrv.repo.UpdateItem(item)
 	if len(ers)>0{
 		return nil,ers
 	}

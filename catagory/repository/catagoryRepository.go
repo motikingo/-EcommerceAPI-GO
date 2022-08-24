@@ -12,7 +12,7 @@ import (
 type CatRepo struct{
 	db *gorm.DB
 }
-func NewCatagoryRepo(db *gorm.DB)catagory.CatagoryRepository{
+func NewCatagoryRepo(db *gorm.DB) catagory.CatagoryRepository{
 	return &CatRepo{db:db}
 }
 
@@ -35,10 +35,21 @@ func(usrRepo *CatRepo)GetCatagory(id uint) (*entity.Catagory,[]error){
 	}
 	return &cat,nil
 }
-func(usrRepo *CatRepo)UpdateCatagory(id uint,ct entity.Catagory) (*entity.Catagory,[]error){
+
+func(usrRepo *CatRepo)IsCatagoryNameExist(name string) bool{
+	var cat entity.Catagory
+
+	ers:= usrRepo.db.First(&cat,name).GetErrors()
+	if len(ers)>0{
+		return false
+	}
+	return true
+
+}
+func(usrRepo *CatRepo)UpdateCatagory(ct entity.Catagory) (*entity.Catagory,[]error){
 
 
-	cat,ers := usrRepo.GetCatagory(id)
+	cat,ers := usrRepo.GetCatagory(ct.ID)
 	if len(ers)>0{
 		return nil,ers
 	}
@@ -69,7 +80,7 @@ func(usrRepo *CatRepo)CreateCatagory(ct entity.Catagory) (*entity.Catagory,[]err
 	}else if cat ==nil && len(ers)>0{
 		cat.Name = ct.Name
 		cat.Description = ct.Description
-		cat.Items = ct.Items 
+		cat.Items_Id = ct.Items_Id 
 
 		ers = usrRepo.db.Save(&cat).GetErrors()
 		if len(ers)>0{

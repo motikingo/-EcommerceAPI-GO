@@ -2,7 +2,6 @@ package handler
 
 import (
 	//"fmt"
-	"log"
 	"net/http"
 	//"net/http"
 	//"encoding/json"
@@ -15,31 +14,32 @@ import (
 
 type cartHandler struct{
 	carServc cart.CartService 
+	sessionHa   *SessionHandler
 }
 
-func NewcartHandler(carServc cart.CartService) cartHandler{
-	return cartHandler{carServc: carServc}
+func NewcartHandler(carServc cart.CartService,sessionHa *SessionHandler) cartHandler{
+	return cartHandler{carServc: carServc,sessionHa:sessionHa}
 }
 
 func(carHandler *cartHandler)GetCarts(ctx *gin.Context){
-	cxt.Header("Content-Type","application/json")
+	ctx.Header("Content-Type","application/json")
 	response := &struct{
 		status string
 		cart []entity.Cart
 		
 	}{
-		status:"Unauthorized user"
+		status:"Unauthorized user",
 	}
 
-	sess := catHa.sessionHa.GetSession(ctx)
+	sess := carHandler.sessionHa.GetSession(ctx)
 	if sess != nil{
-		cxt.IndentedJSON(http.StatusUnathorized,response)
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 	carts,ers:= carHandler.carServc.GetCarts()
 	if ers!=nil{
 		response.status = "Internal Serever Error"
-		cxt.IndentedJSON(http.StatusInternalSereverError,response)
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 	response.status = "Successfully retrieved carts"
@@ -49,27 +49,27 @@ func(carHandler *cartHandler)GetCarts(ctx *gin.Context){
 }
 
 func(carHandler *cartHandler)GetCart(ctx *gin.Context){
-	cxt.Header("Content-Type","application/json")
+	ctx.Header("Content-Type","application/json")
 	response := &struct{
 		status string
 		cart *entity.Cart
 		
 	}{
-		status:"Unauthorized user"
+		status:"Unauthorized user",
 	}
 
 
-	id := strconv.Atoi(ctx.Param("id"))
-	sess := catHa.sessionHa.GetSession(ctx)
+	id,_ := strconv.Atoi(ctx.Param("id"))
+	sess := carHandler.sessionHa.GetSession(ctx)
 	if sess != nil{
-		cxt.IndentedJSON(http.StatusUnathorized,response)
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
 	cart,ers:= carHandler.carServc.GetCart(uint(id))
 	if ers!=nil{
 		response.status = "Internal Serever Error"
-		cxt.IndentedJSON(http.StatusInternalSereverError,response)
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 	response.status = "Successfully retrieved cart"
@@ -78,51 +78,51 @@ func(carHandler *cartHandler)GetCart(ctx *gin.Context){
 }
 
 func(carHandler *cartHandler)CreateCart(ctx *gin.Context){
-	cxt.Header("Content-Type","application/json")
+	ctx.Header("Content-Type","application/json")
 	response := &struct{
 		status string
 		cart *entity.Cart
 		
 	}{
-		status:"Unauthorized user"
+		status:"Unauthorized user",
 	}
 	
-	sess := catHa.sessionHa.GetSession(ctx)
+	sess := carHandler.sessionHa.GetSession(ctx)
 	if sess != nil{
-		cxt.IndentedJSON(http.StatusUnathorized,response)
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
-	cart:= carHandler.carServc.GetCartByUserID(sess.User_Id)
+	cart:= carHandler.carServc.GetCartByUserID(sess.UserId)
 
 	if cart != nil{
 		response.status = "cart already added"
 		response.cart = cart
-		cxt.IndentedJSON(http.StatusOK,response)
+		ctx.IndentedJSON(http.StatusOK,response)
 		return
 	}
 
-	cart = entity.Cart{
-		User_Id: sess.User_Id
+	cart = &entity.Cart{
+		UserId: sess.UserId,
 	}
 
 	response.status = "cart added successfully"
-	response.cart = append(response.cart,cart) 
-	cxt.IndentedJSON(http.StatusOK,response)
+	response.cart = cart 
+	ctx.IndentedJSON(http.StatusOK,response)
 }
 
-func(carHandler *cartHandler)DeleteCarts(ctx *gin.Context){
-	cxt.Header("Content-Type","application/json")
+func(carHandler *cartHandler)DeleteCart(ctx *gin.Context){
+	ctx.Header("Content-Type","application/json")
 	response := &struct{
 		status string
 		cart *entity.Cart
 		
 	}{
-		status:"Unauthorized user"
+		status:"Unauthorized user",
 	}
 	
-	sess := catHa.sessionHa.GetSession(ctx)
+	sess := carHandler.sessionHa.GetSession(ctx)
 	if sess != nil{
-		cxt.IndentedJSON(http.StatusUnathorized,response)
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 	input := &struct{
@@ -131,15 +131,15 @@ func(carHandler *cartHandler)DeleteCarts(ctx *gin.Context){
 
 	e := ctx.BindJSON(input)
 
-	if er!=nil || input.cart_Id==nil{
+	if e!=nil || string(input.cart_Id)==""{
 		response.status = "Invalid Input"
-		cxt.IndentedJSON(http.StatusBadRequest,response)
+		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
-	cart,ers:= carHandler.carServc.DeleteCart(uint(id))
+	cart,ers:= carHandler.carServc.DeleteCart(sess.UserId)
 	if ers!=nil{
 		response.status = "No cart Found"
-		cxt.IndentedJSON(http.StatusNotFound,response)
+		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 

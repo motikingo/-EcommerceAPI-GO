@@ -33,6 +33,16 @@ func(itemRepo *ItemRepo)GetItem(id uint)(*entity.Item,[]error){
 	}
 	return &item,nil
 }
+
+func(itemRepo *ItemRepo)IsItemNameExist(name string) *entity.Item{
+
+	var item entity.Item
+	ers := itemRepo.db.First(&item,name).GetErrors()
+	if len(ers)>0{
+		return nil
+	}
+	return &item
+}
 func(itemRepo *ItemRepo)UpdateItem(item entity.Item)(*entity.Item,[]error){
 
 	itm,e := itemRepo.GetItem(item.ID)

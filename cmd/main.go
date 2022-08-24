@@ -1,103 +1,100 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
 
-	cartRepository "github.com/motikingo/ecommerceRESTAPI-Go/cart/repository"
-	cartService "github.com/motikingo/ecommerceRESTAPI-Go/cart/service"
 	catagoryRepository "github.com/motikingo/ecommerceRESTAPI-Go/catagory/repository"
 	catagoryService "github.com/motikingo/ecommerceRESTAPI-Go/catagory/service"
-	"github.com/motikingo/ecommerceRESTAPI-Go/user/repository"
-	"github.com/motikingo/ecommerceRESTAPI-Go/user/service"
+	"github.com/motikingo/ecommerceRESTAPI-Go/customer/repository"
+	"github.com/motikingo/ecommerceRESTAPI-Go/customer/service"
 
 	itemRepository "github.com/motikingo/ecommerceRESTAPI-Go/item/repository"
 	itemService "github.com/motikingo/ecommerceRESTAPI-Go/item/service"
 
-	"github.com/motikingo/ecommerceRESTAPI-Go/handler"
+	cartRepository "github.com/motikingo/ecommerceRESTAPI-Go/cart/repository"
+	cartService "github.com/motikingo/ecommerceRESTAPI-Go/cart/service"
 
-	"github.com/joho/godotenv"
+	"github.com/motikingo/ecommerceRESTAPI-Go/database"
+	"github.com/motikingo/ecommerceRESTAPI-Go/handler"
+	"github.com/motikingo/ecommerceRESTAPI-Go/middleware"
 )
 
 var db *gorm.DB
-var err error
 
-func main(){
-	err = godotenv.Load("../.env")
+func init(){
 
-	if err !=nil{
-		log.Fatal(err)
+	db = database.Connect()
+	if db == nil {
 		return
 	}
+	database.MigrateModel(db)
+}
 
-	dialect := os.Getenv("dialect")
-	dbname  := os.Getenv("dbname")
-	host := os.Getenv("host")
-	user := os.Getenv("user")
-	password:= os.Getenv("password")
-
-	dbURL := fmt.Sprintf("host=%s user=%s dbname=%s password=%s sslmode = disable",host,user,dbname,password)
-
-	db,err = gorm.Open(dialect,dbURL) 
-
-	if err !=nil{
-		log.Fatal(err)
-		return
-	}
-
-	db.Debug().AutoMigrate(entity.User{})
-	db.Debug().AutoMigrate(entity.Catagory{})
-	db.Debug().AutoMigrate(entity.Item{})
-	db.Debug().AutoMigrate(entity.Cart{})
-
+func main(){	
 	r := gin.Default()
 
-	userRepo:=repository.NewUserRepo(db)
+	session := handler.NewSessionHandler()
+
+	secure := middleware.NewMiddlerware(&session) 
+
+	admRepo := repository.NewUserRepo(db)
+	admServc := service.NewUserSrvc(admRepo)
+	admHandler:= handler.NewAdminHandler(admServc,&session)
+	
+	r.GET("/admins",secure.AdminLogedIn(),admHandler.GetAdmins)
+	r.GET("/admin/:id",secure.AdminLogedIn(),admHandler.GetAdmin)
+	r.POST("/create/admin",secure.AdminLogedIn(),admHandler.CreateAdmin)
+	r.PUT("/ChangeProfile/admin",secure.AdminLogedIn(),admHandler.ChangeProfile)
+	r.PUT("/ChangePassword/admin",secure.AdminLogedIn(),admHandler.ChangePassword)
+
+	userRepo := repository.NewUserRepo(db)
 	userServc := service.NewUserSrvc(userRepo)
-	userHandler:= handler.NewUserHandler(userServc)
-
-	r.GET("/users",userHandler.GetUsers)
-	r.GET("/users/:id",userHandler.GetUser)
-	r.POST("/create/user/",userHandler.CreateUser)
-	r.PUT("/update/user/:id",userHandler.UpdateUser)
-	r.POST("/delete/user/",userHandler.DeleteUser)
-
-	cartRepo:= cartRepository.NewCartRepo(db)
-	cartServ := cartService.NewCartServ(cartRepo)
-	cartHadler := handler.NewcartHandler(cartServ) 
-
-	r.GET("/{user_id}/carts/",cartHadler.GetCarts)
-	r.GET("/{user_id}/carts/:id",cartHadler.GetCart)
-	r.PUT("/{user_id}/update/carts/:id",cartHadler.UpdateCart)
-	r.POST("/{user_id}/create/carts/",cartHadler.CreateCarts)
-	r.DELETE("/{use_id}/delete/carts/:id",cartHadler.DeleteCarts)
+	userHandler:= handler.NewUserHandler(userServc,&session)
+	
+	r.GET("/users",secure.AdminLogedIn(),userHandler.GetUsers)
+	r.GET("/user:id",secure.UserLogedIn(),userHandler.GetUser)
+	r.POST("/create/",secure.UserLogedIn(),userHandler.CreateUser)
+	r.PUT("/ChangeProfile/",secure.UserLogedIn(),userHandler.ChangeProfile)
+	r.PUT("/ChangePassword/",secure.UserLogedIn(),userHandler.ChangePassword)
+	r.GET("/AddItem/user/",secure.UserLogedIn(),userHandler.AddItemToMyCart)
+	r.GET("/Order/",secure.UserLogedIn(),userHandler.Order)
+	r.DELETE("/delete/",secure.UserLogedIn(),userHandler.DeleteAccount)
 
 	catRepo := catagoryRepository.NewCatagoryRepo(db)
 	catservs:= catagoryService.NewCatagoryServ(catRepo)
-	catHandler := handler.NewcatHandler(catservs)
+	catHandler := handler.NewcatHandler(catservs,&session)
 
 	r.GET("/catagories",catHandler.GetCatagories)
 	r.GET("/catagory/:id",catHandler.GetCatagory)
-	r.PUT("/update/catagory/:id",catHandler.UpdateCatagory)
-	r.POST("/create/catagory/",catHandler.CreateCatagory)
-	r.DELETE("/delete/catagory/:id",catHandler.DeleteCatagory)
-
+	r.PUT("catagory/update/",secure.AdminLogedIn(), catHandler.UpdateCatagory)
+	r.POST("catagory/create/",secure.AdminLogedIn(),catHandler.CreateCatagory)
+	r.DELETE("catagory/delete/",secure.AdminLogedIn(),catHandler.DeleteCatagory)
+	r.GET("/catagory/Items",secure.AdminLogedIn(),catHandler.GetMyItems)
+	r.POST("/catagory/AddItems/",secure.AdminLogedIn(),catHandler.AddItems)
+	r.PUT("catagory/DeleteItem/",secure.AdminLogedIn(),catHandler.DeleteItemFromCatagory)
 
 	itemRepo := itemRepository.NewItemRepo(db)
 	itemServ:= itemService.NewItemServ(itemRepo)
-	itemHandler:= handler.NewItemHandler(itemServ)
+	itemHandler:= handler.NewItemHandler(itemServ,&session)
 
 	r.GET("/items",itemHandler.GetItems)
 	r.GET("/item/:id",itemHandler.GetItem)
-	r.PUT("/update/item/:id",itemHandler.UpdateItem)
-	r.POST("/create/item/",itemHandler.CreateItem)
-	r.DELETE("/delete/item/:id",itemHandler.DeleteItem)
+	r.PUT("/update/item/",secure.AdminLogedIn(),itemHandler.UpdateItem)
+	r.POST("/create/item/",secure.AdminLogedIn(),itemHandler.CreateItem)
+	r.DELETE("/delete/item/",secure.AdminLogedIn(),itemHandler.DeleteItem)
+
+	cartrepo := cartRepository.NewCartRepo(db)
+	cartSrv := cartService.NewCartServ(cartrepo)
+	cartHandler := handler.NewcartHandler(cartSrv,&session)
+
+	r.GET("/carts",secure.AdminLogedIn(),cartHandler.GetCarts)
+	r.GET("/cart/:id",secure.UserLogedIn(),cartHandler.GetCart)
+	r.POST("/create/cart/",secure.UserLogedIn(),cartHandler.CreateCart)
+	r.DELETE("/delete/cart/",secure.UserLogedIn(),cartHandler.DeleteCart)
 	
 	log.Fatal(r.Run(":80"))
 

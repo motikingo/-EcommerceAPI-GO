@@ -5,10 +5,12 @@ import (
 )
 
 type UserService interface{
-	GetUsers()([]entity.User,[]error)
-	GetUser(id uint)(*entity.User,[]error)
-	CreateUser(user entity.User)(*entity.User,[]error)
-	UpdateUser(id uint,user entity.User)(*entity.User,[]error)
-	DeleteUser(id uint)(*entity.User,[]error)
+	GetUsers()([]entity.Customer,[]error)
+	GetUser(id uint)(*entity.Customer,[]error)
+	GetUserByUserName(name string) *entity.Customer
+	GetUserByEmail(email string)bool
+	CreateUser(user entity.Customer)(*entity.Customer,[]error)
+	UpdateUser(user entity.Customer)(*entity.Customer,[]error)
+	DeleteUser(id uint)(*entity.Customer,[]error)
 
 }

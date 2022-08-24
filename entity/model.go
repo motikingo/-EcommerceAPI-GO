@@ -30,7 +30,7 @@ type Item struct{
 	Description string		`json :"description"`
 	Brand string 			`json:"brand"`
 	Image string 			`json:"image"`
-	Price uint 				`json:"price"`
+	Price float64 				`json:"price"`
 	Number int				 `json:"number"`
 	ProductionDate time.Time `json:"production_date"`
 	ExpireDate time.Time 	`json:"expire_date"`
@@ -40,7 +40,7 @@ type Item struct{
 type Cart struct{
 	gorm.Model
 	UserId uint	`json:user_Id`
-	Items []uint 	`json:"items"`
+	Items map[uint]float64 	`json:"items"`
 }
 
 

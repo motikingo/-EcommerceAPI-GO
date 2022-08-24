@@ -30,9 +30,14 @@ func (catServc *catagoryServc) GetCatagory(id uint) (*entity.Catagory, []error) 
 	return cat,nil
 
 }
-func (catServc *catagoryServc) UpdateCatagory(id uint, ct entity.Catagory) (*entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.UpdateCatagory(id,ct)
+func (catServc *catagoryServc)IsCatagoryNameExist(name string) bool{
+	return catServc.repo.IsCatagoryNameExist(name)
+}
+
+func (catServc *catagoryServc) UpdateCatagory(ct entity.Catagory) (*entity.Catagory, []error) {
+
+	cat,ers:= catServc.repo.UpdateCatagory(ct)
 	if len(ers)>0{
 		return nil,ers
 	}

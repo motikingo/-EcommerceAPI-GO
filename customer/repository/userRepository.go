@@ -5,7 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
-	"github.com/motikingo/ecommerceRESTAPI-Go/user"
+	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
 )
 
 type UserRepo struct{
@@ -16,9 +16,9 @@ func NewUserRepo(db * gorm.DB) user.UserRepository{
 	return &UserRepo{db:db}
 }
 
-func(usrRepo *UserRepo) GetUsers()([]entity.User,[]error){
+func(usrRepo *UserRepo) GetUsers()([]entity.Customer,[]error){
 
-	var users []entity.User
+	var users []entity.Customer 
 	errs := usrRepo.db.Find(&users).GetErrors()
 	if len(errs)>0 {
 		return nil,errs
@@ -26,9 +26,9 @@ func(usrRepo *UserRepo) GetUsers()([]entity.User,[]error){
 	return users,nil
 }
 
-func(usrRepo *UserRepo)  GetUser(id uint)(*entity.User,[]error){
+func(usrRepo *UserRepo)GetUser(id uint)(*entity.Customer,[]error){
 
-	var user entity.User
+	var user entity.Customer
 	errs := usrRepo.db.First(&user,id).GetErrors()
 	if len(errs)>0 {
 		return nil,errs
@@ -36,7 +36,23 @@ func(usrRepo *UserRepo)  GetUser(id uint)(*entity.User,[]error){
 	return &user,nil
 }
 
-func(usrRepo *UserRepo) CreateUser(user entity.User)(*entity.User,[]error){
+func (usrRepo *UserRepo) GetUserByUserName(name string) *entity.Customer {
+	var user entity.Customer
+	errs := usrRepo.db.First(&user,name).GetErrors()	
+	if len(errs)>0{
+		return nil
+	}
+	return &user 
+}
+
+
+func (usrRepo *UserRepo)GetUserByEmail(email string)bool{
+	var user entity.Customer
+	errs := usrRepo.db.First(&user,email).GetErrors()	
+	return errs ==nil
+}
+
+func(usrRepo *UserRepo) CreateUser(user entity.Customer)(*entity.Customer,[]error){
 	usr,ers := usrRepo.GetUser(user.ID) 
 
 	if usr!=nil && len(ers)==0 {
@@ -60,8 +76,8 @@ func(usrRepo *UserRepo) CreateUser(user entity.User)(*entity.User,[]error){
 	
 }
 
-func(usrRepo *UserRepo) UpdateUser(id uint,user entity.User)(*entity.User,[]error){
-	usr,ers := usrRepo.GetUser(id) 
+func(usrRepo *UserRepo) UpdateUser(user entity.Customer)(*entity.Customer,[]error){
+	usr,ers := usrRepo.GetUser(user.ID) 
 
 	if usr!=nil && ers == nil {
 		usr.Name = user.Name
@@ -88,7 +104,7 @@ func(usrRepo *UserRepo) UpdateUser(id uint,user entity.User)(*entity.User,[]erro
 	return nil,nil
 }
 
-func(usrRepo *UserRepo) DeleteUser(id uint)(*entity.User,[]error){
+func(usrRepo *UserRepo) DeleteUser(id uint)(*entity.Customer,[]error){
 	usr,ers := usrRepo.GetUser(id) 
 
 	if usr!=nil && len(ers)==0 {
