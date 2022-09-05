@@ -16,5 +16,5 @@ func SecurePassword(password string)string{
 func ComparePassword(hash string,password string)bool{
 	er := bcrypt.CompareHashAndPassword([]byte(hash),[]byte(password))
 
-	return er != nil
+	return er == nil
 }

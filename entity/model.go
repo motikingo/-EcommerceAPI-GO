@@ -13,7 +13,7 @@ type Customer struct{
 	UserName string	`json:"username"`
 	Email string	`json:"email"`
 	Password string	 `json:"password"`
-	
+	Role 	string 	`json:"role"`
 }
 
 type Catagory struct{
@@ -21,29 +21,41 @@ type Catagory struct{
 	Name string `json:"name"`
 	Image string 	`json:"image"`
 	Description string `json:"description"`
-	Items_Id []uint		`json:"items_Id"`
+	Items []Item		`json:"items" gorm:"Many2Many:catagory_items"`
 }
 
 type Item struct{
-	gorm.Model
+	gorm.Model	
 	Name string 			`json:"name"`
 	Description string		`json :"description"`
 	Brand string 			`json:"brand"`
 	Image string 			`json:"image"`
-	Price float64 				`json:"price"`
-	Number int				 `json:"number"`
-	ProductionDate time.Time `json:"production_date"`
-	ExpireDate time.Time 	`json:"expire_date"`
-
+	Price float64 			`json:"price"`
+	Number int				`json:"number"`
+	ProductionDate time.Time`json:"production_date"`
+	ExpireDate time.Time	`json:"expire_date"`
+	Catagories []Catagory 	`json:"catagories"  gorm:"Many2Many:catagory_items"`
 }
 
-type Cart struct{
+type Record struct{
+	CreateAt time.Time
+	UserId uint `gorm:"Primary_Key:user_id"`
+	Carts []CartInfo
+}
+type CartInfo struct{
 	gorm.Model
-	UserId uint	`json:user_Id`
-	Items map[uint]float64 	`json:"items"`
+	//CreatedAt time.Time
+	Cart Cart
 }
-
-
+type Cart struct{
+	UserId uint				 `json:user_Id`
+	Items map[uint]ItemInfo	 `json:"items"`
+	jwt.StandardClaims
+}
+type ItemInfo struct{
+	Number int
+	ItemBill float64
+}
 type Session struct{
 	UserId uint
 	UserName string

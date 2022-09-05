@@ -4,26 +4,30 @@ import (
 	//"fmt"
 	//"net/http"
 	//"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/gin-gonic/gin"
-	"github.com/motikingo/ecommerceRESTAPI-Go/cart"
-	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
+	helper "github.com/motikingo/ecommerceRESTAPI-Go/Helper"
+	user "github.com/motikingo/ecommerceRESTAPI-Go/customer"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
 	"github.com/motikingo/ecommerceRESTAPI-Go/item"
-	"github.com/motikingo/ecommerceRESTAPI-Go/Helper"
-
+	"github.com/motikingo/ecommerceRESTAPI-Go/record"
 )
 
 type UserHandler struct {
 
 	userSrv user.UserService
 	itemSrv item.ItemService
-	cartsrv cart.CartService
+	cartHa 	*CartHandler
+	RecordSrv record.RecordService
 	sessionHa *SessionHandler
 }
 
-func NewUserHandler(userSrv user.UserService, sessionHa *SessionHandler)UserHandler{
-	return UserHandler{userSrv: userSrv,sessionHa:sessionHa}
+func NewUserHandler(userSrv user.UserService,itemSrv item.ItemService, cartHa *CartHandler,RecordSrv record.RecordService,sessionHa *SessionHandler)UserHandler{
+	return UserHandler{userSrv: userSrv,itemSrv:itemSrv,cartHa:cartHa,RecordSrv:RecordSrv,sessionHa:sessionHa}
 }
 
 func (usrHandler *UserHandler)GetUsers(ctx *gin.Context){
@@ -78,12 +82,12 @@ func(usrHandler *UserHandler) CreateUser(ctx *gin.Context){
 	}
 	
 	input := &struct{
-		name string
-		last_name string		
-		user_name string
-		email string
-		password string
-		comfirm_password string
+		Name string
+		Last_name string		
+		User_name string
+		Email string
+		Password string
+		Comfirm_password string
 
 
 	}{}
@@ -94,38 +98,36 @@ func(usrHandler *UserHandler) CreateUser(ctx *gin.Context){
 		return
 	}
 
-	input.password = helper.SecurePassword(input.password)
-
-	if input.user_name =="" || input.email == "" || input.name=="" || input.last_name=="" || input.password == "" || input.comfirm_password == ""{
+	if input.User_name =="" || input.Email == "" || input.Name=="" || input.Last_name=="" || input.Password == "" || input.Comfirm_password == ""{
 		response.status = "Invalid input..."
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if input.password != input.comfirm_password{
+	if input.Password != input.Comfirm_password{
 		response.status = "password is mismatch"
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if usrHandler.userSrv.GetUserByUserName(input.user_name) != nil {
+	if usrHandler.userSrv.GetUserByUserName(input.User_name) != nil {
 		response.status = "This user name already exist"
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if usrHandler.userSrv.GetUserByEmail(input.user_name){
+	if usrHandler.userSrv.GetUserByEmail(input.User_name){
 		response.status = "This email already exist"
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
-
+	input.Password = helper.SecurePassword(input.Password)
 	usr := entity.Customer{
-		Name:input.name,
-		LastName:input.last_name,
-		UserName: input.user_name,
-		Email: input.email,
-		Password:input.password,
+		Name:input.Name,
+		LastName:input.Last_name,
+		UserName: input.User_name,
+		Email: input.Email,
+		Password:input.Password,
 	}
 	
 	user,ers:= usrHandler.userSrv.CreateUser(usr)
@@ -135,7 +137,7 @@ func(usrHandler *UserHandler) CreateUser(ctx *gin.Context){
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
-
+	fmt.Println("hereeeee")
 	response.status = "successfully created"
 	response.user = user
 	ctx.IndentedJSON(http.StatusCreated,response)
@@ -262,48 +264,49 @@ func(usrHandler *UserHandler)ChangePassword(ctx * gin.Context){
 func(usrHandler *UserHandler)LogIn(ctx * gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		user_name string
-		password string
+		User_name string
+		Password string
 	}{}
 	
 	if er := ctx.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	user := usrHandler.userSrv.GetUserByUserName(input.user_name)
+	user := usrHandler.userSrv.GetUserByUserName(input.User_name)
 
 	if user == nil{
-		response.status = "No user with this user name..."
+		response.Status = "No user with this user name..."
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 
-	if !helper.ComparePassword(user.Password,input.password){
-		response.status = "Invalid password..."
+	if !helper.ComparePassword(user.Password,input.Password){
+		response.Status = "Invalid password..."
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	session := entity.Session{
+	session := &entity.Session{
 		UserId:user.ID,
 		UserName:user.UserName,
 		Email:user.Email,
 	}
+	
 	if !usrHandler.sessionHa.CreateSession(session,ctx){
-		response.status = "Internal server Error..."
-		ctx.IndentedJSON(http.StatusBadRequest,response)
+		fmt.Println("here123")
+		response.Status = "Internal server Error..."
+		ctx.IndentedJSON(http.StatusInternalServerError,session)
 		return
 	}
-
-	response.status = "Successfully loged In..."
+	response.Status = "Successfully loged In..."
 	ctx.IndentedJSON(http.StatusOK,response)
 }
 
@@ -311,139 +314,252 @@ func(usrHandler *UserHandler)LogIn(ctx * gin.Context){
 func(usrHandler *UserHandler)Logout(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 
 	sess := usrHandler.sessionHa.GetSession(ctx)
-	if sess != nil {
+	if sess == nil {
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
-	user := usrHandler.userSrv.GetUserByUserName(sess.Email)
+	user := usrHandler.userSrv.GetUserByUserName(sess.UserName)
 
 	if user == nil{
-		response.status = "No user with this user name..."
+		response.Status = "No user with this user name..."
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
-
 	if !usrHandler.sessionHa.DeleteSession(ctx){
-		response.status = "Internal server Error..."
+		response.Status = "Internal server Error..."
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	response.status = "Successfully loged out..."
+	response.Status = "Successfully Loged out..."
 	ctx.IndentedJSON(http.StatusOK,response)
 }
 
 func(usrHandler *UserHandler) AddItemToMyCart(ctx * gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
+		Cart entity.Cart
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		item_Id uint
-		howMany int
+		Item_Id uint
+		HowMany int
 	}{}
 	
 	sess := usrHandler.sessionHa.GetSession(ctx)
-	if sess != nil {
+	if sess == nil {
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}	
 
 	if er := ctx.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if string(input.item_Id) == "" || input.howMany<1{
-		response.status = "Invalid Input..." 
+	if input.Item_Id == 0 || input.HowMany<1{
+		response.Status = "Invalid Input..." 
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	} 
-	item,ers := usrHandler.itemSrv.GetItem(input.item_Id)
+	item,ers := usrHandler.itemSrv.GetItem(input.Item_Id)
 	
 	if len(ers)>0{
-		response.status = "No such Item exist"
+		response.Status = "No such Item exist"
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if item.Number < input.howMany{
-		response.status = "Appology we run out of Item for now"
+	if item.Number < input.HowMany{
+		response.Status = "Appology we run out of Item for now"
 		ctx.IndentedJSON(http.StatusOK,response)
 		return
 	}
 
-	cart := usrHandler.cartsrv.GetCartByUserID(sess.UserId)
+	cart := usrHandler.cartHa.GetCart(ctx)
 
 	if cart == nil{
-		response.status = "Add cart first please..." 
+		response.Status = "Add cart first please..." 
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
-	cart.Items[input.item_Id] = float64(input.howMany) * item.Price
+	cart.Items[input.Item_Id] = entity.ItemInfo{
+		Number: input.HowMany,
+		ItemBill:float64(input.HowMany) * item.Price,
+	}
 
-	cart,ers = usrHandler.cartsrv.UpdateCart(*cart)
-
-	if len(ers)>0{
-		response.status = "Internal Server Error"
+	if ! usrHandler.cartHa.UpdateCart(*cart,ctx) {
+		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 
-	item.Number  = item.Number - input.howMany
+	item.Number  = item.Number - input.HowMany
 	item,ers = usrHandler.itemSrv.UpdateItem(*item)
 
 	if len(ers)>0{
 		delete(cart.Items,item.ID)
-		response.status = "Internal Server Error"
+		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
+	response.Status = "Item Added to cart successfully..."
+	response.Cart = *cart 
+	ctx.IndentedJSON(http.StatusBadRequest,response)
+}
+
+func(usrHandler *UserHandler) DeleteItemFromMyCart(ctx * gin.Context){
+
+	ctx.Header("Content-Type","application/json")
+	response := &struct{
+		Status string
+		
+	}{
+		Status:"Unauthorized user",
+	}
+	
+	
+	sess := usrHandler.sessionHa.GetSession(ctx)
+	if sess == nil {
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
+		return
+	}	
+
+	id,_ := strconv.Atoi(ctx.Param("item_id")) 
+
+	item,ers := usrHandler.itemSrv.GetItem(uint(id))
+	
+	if len(ers)>0{
+		response.Status = "No such Item exist"
+		ctx.IndentedJSON(http.StatusBadRequest,response)
+		return
+	}
+	
+	cart := usrHandler.cartHa.GetCart(ctx)
+
+	if cart == nil{
+		response.Status = "Add cart first please..." 
+		ctx.IndentedJSON(http.StatusBadRequest,response)
+		return
+	}
+
+	delete(cart.Items,item.ID)
+
+	if !usrHandler.cartHa.UpdateCart(*cart,ctx){
+		response.Status = "Internal Server Error"
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
+	item.Number  = item.Number + cart.Items[item.ID].Number
+	item,ers = usrHandler.itemSrv.UpdateItem(*item)
+
+	if len(ers)>0{
+		delete(cart.Items,item.ID)
+		response.Status = "Internal Server Error"
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
+	response.Status = "Successfully remote Item from cart"
+	ctx.IndentedJSON(http.StatusInternalServerError,response)
+
+}
+
+func(usrHandler *UserHandler) DeleteMyCart(ctx * gin.Context){
+
+	cart:= usrHandler.cartHa.DeleteCart(ctx)
+	for id,info := range cart.Items{
+		item,er:= usrHandler.itemSrv.GetItem(id)
+		if len(er)>0{
+			ctx.IndentedJSON(http.StatusInternalServerError,gin.H{"status" : "No such Item"})
+			return
+		}
+		item.Number += info.Number
+		_,er = usrHandler.itemSrv.UpdateItem(*item)
+
+		if len(er)>0{
+			ctx.IndentedJSON(http.StatusInternalServerError,gin.H{"status" : "Internal Server Error"})
+			return
+		}
+	}
+
 }
 
 func (usrHandler *UserHandler) Order(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
-		totalBill float64
+		Status string
+		TotalBill float64
+		Record entity.Record
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 
 	sess := usrHandler.sessionHa.GetSession(ctx)
-	if sess != nil {
+	if sess == nil {
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
-	cart:= usrHandler.cartsrv.GetCartByUserID(sess.UserId)
+	cart:= usrHandler.cartHa.GetCart(ctx)
 
 	if cart == nil{
-		response.status = "There is no cart with this user Id"
+		response.Status = "There is no cart with this user Id"
+		ctx.IndentedJSON(http.StatusUnauthorized,response)
+		return
+	}
+	if len(cart.Items) == 0{
+		response.Status = "cart is empty Add item first please..."
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 	for _,bill := range cart.Items{
 		
-		response.totalBill += bill
+		response.TotalBill += bill.ItemBill
 	} 
+	record := usrHandler.RecordSrv.GetRecordByUserID(sess.UserId)
 
-	response.status = "total bill calculated..."
+	if record ==nil{
+		reco := entity.Record{
+			CreateAt: time.Now(),
+			UserId: sess.UserId,
+			Carts: make([]entity.CartInfo,0),
+		}
+		
+		if rec := usrHandler.RecordSrv.CreateRecord(reco); rec == nil{
+			response.Status = "Internal Server Error"
+			ctx.IndentedJSON(http.StatusInternalServerError,response)
+			return
+		}
+		
+	}
+	record.Carts = append(record.Carts,entity.CartInfo{
+		//CreatedAt:time.Now(),
+		Cart:*cart,
+	}) 
+	reco := usrHandler.RecordSrv.UpdateRecord(*record)
+
+	if reco == nil {
+		response.Status = "Internal Server Error user"
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
+
+	response.Status = "total bill calculated..."
+	response.Record = *record
 	ctx.IndentedJSON(200,response)
-
 }
 
 func(usrHandler *UserHandler) DeleteAccount(ctx * gin.Context){
@@ -475,6 +591,17 @@ func(usrHandler *UserHandler) DeleteAccount(ctx * gin.Context){
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
+
+	_ = usrHandler.cartHa.DeleteCart(ctx)
+	r := usrHandler.RecordSrv.GetRecordByUserID(user.ID)
+	r= usrHandler.RecordSrv.ClearRecord(r.UserId)
+	
+	if !usrHandler.sessionHa.DeleteSession(ctx) || r==nil{
+		response.status = "Internal Server Error user"
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	} 
+
 
 	response.status = "succefully Deleted."
 	response.user = user

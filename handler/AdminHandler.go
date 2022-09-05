@@ -1,15 +1,15 @@
 package handler
 
 import (
-
+	"fmt"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
+	helper "github.com/motikingo/ecommerceRESTAPI-Go/Helper"
+	user "github.com/motikingo/ecommerceRESTAPI-Go/customer"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
-	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
 	// "github.com/motikingo/ecommerceRESTAPI-Go/item"
 	// "github.com/motikingo/ecommerceRESTAPI-Go/cart"
-	"github.com/motikingo/ecommerceRESTAPI-Go/Helper"
-
 )
 
 type AdminHandler struct {
@@ -67,72 +67,73 @@ func (admHandler *AdminHandler)GetAdmin(cxt *gin.Context){
 func(admHandler *AdminHandler) CreateAdmin(cxt *gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		Admin *entity.Customer
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		name string
-		last_name string		
-		user_name string
-		email string
-		password string
-		comfirm_password string
+		Name string
+		Last_name string		
+		User_name string
+		Email string
+		Password string
+		Comfirm_password string
 
 
 	}{}
 
 	if er := cxt.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	input.password = helper.SecurePassword(input.password)
 
-	if input.user_name =="" || input.email == "" || input.name=="" || input.last_name == ""|| input.password == "" || input.comfirm_password == ""{
-		response.status = "Invalid input..."
+	if input.User_name =="" || input.Email == "" || input.Name=="" || input.Last_name == ""|| input.Password == "" || input.Comfirm_password == ""{
+		response.Status = "Invalid input..."
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}	
 	
 	
-	if input.password != input.comfirm_password{
-		response.status = "password is mismatch"
+	if input.Password != input.Comfirm_password{
+		response.Status = "password is mismatch"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if admHandler.AdminSrv.GetUserByUserName(input.user_name)!= nil{
-		response.status = "This user name already exist"
+	if admHandler.AdminSrv.GetUserByUserName(input.User_name)!= nil{
+		response.Status = "This user name already exist"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if admHandler.AdminSrv.GetUserByEmail(input.user_name){
-		response.status = "This email already exist"
+	if admHandler.AdminSrv.GetUserByEmail(input.User_name){
+		response.Status = "This email already exist"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
+	input.Password = helper.SecurePassword(input.Password)
 	admin := entity.Customer{
-		Name:input.name,
-		LastName:input.last_name,
-		UserName: input.user_name,
-		Email: input.email,
-		Password:input.password,
+		Name:input.Name,
+		LastName:input.Last_name,
+		UserName: input.User_name,
+		Email: input.Email,
+		Password:input.Password,
+		Role:"Admin",
 	}
 	
 	adm,ers:= admHandler.AdminSrv.CreateUser(admin)
 
 	if len(ers)> 0 {
-		response.status = "Internal Server Error"
+		response.Status = "Internal Server Error"
 		cxt.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 
-	response.status = "successfully created"
+	response.Status = "successfully created"
 	response.Admin = adm
 	cxt.IndentedJSON(http.StatusCreated,response)
 }
@@ -140,16 +141,16 @@ func(admHandler *AdminHandler) CreateAdmin(cxt *gin.Context){
 func(admHandler *AdminHandler) ChangeProfile(cxt * gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		Admin *entity.Customer
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		name string
-		last_name string		
-		user_name string
-		email string
+		Name string
+		Last_name string		
+		User_name string
+		Email string
 		
 	}{}
 
@@ -160,13 +161,13 @@ func(admHandler *AdminHandler) ChangeProfile(cxt * gin.Context){
 	}
 
 	if er := cxt.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if input.user_name =="" || input.email == "" || input.name=="" || input.last_name =="" {
-		response.status = "Invalid input..."
+	if input.User_name =="" || input.Email == "" || input.Name=="" || input.Last_name =="" {
+		response.Status = "Invalid input..."
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
@@ -174,27 +175,27 @@ func(admHandler *AdminHandler) ChangeProfile(cxt * gin.Context){
 	adm,ers:=admHandler.AdminSrv.GetUser(sess.UserId)
 
 	if len(ers)>0 {
-		response.status = "No Admin found"
+		response.Status = "No Admin found"
 		cxt.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 
 	admin:= entity.Customer{
-		Name:input.name,
-		LastName:input.last_name,
-		UserName: input.user_name,
-		Email: input.email,
+		Name:input.Name,
+		LastName:input.Last_name,
+		UserName: input.User_name,
+		Email: input.Email,
 	}
-	admin.ID = sess.UserId
+	admin.ID = adm.ID
 	adm,ers = admHandler.AdminSrv.UpdateUser(admin)
 
 	if ers!=nil {
-		response.status = "Internal Server Error"
+		response.Status = "Internal Server Error"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	response.status = "profile successfully updated "
+	response.Status = "profile successfully updated "
 	response.Admin = adm
 	cxt.JSON(200,response)
 }
@@ -202,14 +203,14 @@ func(admHandler *AdminHandler) ChangeProfile(cxt * gin.Context){
 func(admHandler *AdminHandler)ChangePassword(cxt * gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		old_password string
-		new_password string
+		Old_password string
+		New_password string
 	}{}
 	
 	sess := admHandler.sessionHa.GetSession(cxt)
@@ -219,70 +220,70 @@ func(admHandler *AdminHandler)ChangePassword(cxt * gin.Context){
 	}
 
 	if er := cxt.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	if input.old_password =="" || input.new_password == "" {
-		response.status = "Invalid input..."
+	if input.Old_password =="" || input.New_password == "" {
+		response.Status = "Invalid input..."
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 	adm,er := admHandler.AdminSrv.GetUser(sess.UserId)
 
 	if len(er)>0 {
-		response.status = "No such Admin"
+		response.Status = "No such Admin"
 		cxt.IndentedJSON(http .StatusNotFound,response)
 		return
 	}
 
-	if !helper.ComparePassword(adm.Password,input.old_password){
-		response.status = "Incorrect password sign in again"
+	if !helper.ComparePassword(adm.Password,input.Old_password){
+		response.Status = "Incorrect password sign in again"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		admHandler.sessionHa.DeleteSession(cxt)
 		return
 	}
 
-	response.status = "password succefully changed"
+	response.Status = "password succefully changed"
 	cxt.IndentedJSON(http.StatusOK,response)
 
 }
 
-func(admHandler *UserHandler) AdminLogIn (cxt * gin.Context){
+func(admHandler *AdminHandler) AdminLogIn (cxt *gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		user_name string
-		password string
+		User_name string
+		Password string
 	}{}
 	
 	if er := cxt.BindJSON(&input); er!=nil{
-		response.status = "bad request..." 
+		response.Status = "bad request..." 
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	adm := admHandler.userSrv.GetUserByUserName(input.user_name)
+	adm := admHandler.AdminSrv.GetUserByUserName(input.User_name)
 
 	if adm == nil{
-		response.status = "No Admin with this user name..."
+		response.Status = "No Admin with this user name..."
 		cxt.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 
-	if !helper.ComparePassword(adm.Password,input.password){
-		response.status = "Invalid password..."
+	if !helper.ComparePassword(adm.Password,input.Password){
+		response.Status = "Invalid password..."
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	session := entity.Session{
+	session := &entity.Session{
 		UserId:adm.ID,
 		UserName:adm.UserName,
 		Email:adm.Email,
@@ -290,46 +291,48 @@ func(admHandler *UserHandler) AdminLogIn (cxt * gin.Context){
 	}
 
 	if !admHandler.sessionHa.CreateSession(session,cxt){
-		response.status = "Internal server Error..."
-		cxt.IndentedJSON(http.StatusBadRequest,response)
+		response.Status = "Internal server Error..."
+		cxt.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 
-	response.status = "Successfully loged In..."
+	response.Status = "Successfully loged In..."
 	cxt.IndentedJSON(http.StatusOK,response)
 }
 
 
-func(admHandler *UserHandler)AdminLogout(cxt * gin.Context){
+func(admHandler *AdminHandler)AdminLogOut(cxt *gin.Context){
 	cxt.Header("Content-Type","application/json")
 	response := &struct{
-		status string
+		Status string
 		
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
-
+	fmt.Println("here")
 	sess := admHandler.sessionHa.GetSession(cxt)
-	if sess != nil {
+	fmt.Println(sess)
+	if sess == nil {
+		fmt.Println("here")
 		cxt.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
-	adm := admHandler.userSrv.GetUserByUserName(sess.Email)
+	adm := admHandler.AdminSrv.GetUserByUserName(sess.UserName)
 
 	if adm == nil{
-		response.status = "No user with this user name..."
+		response.Status = "No user with this user name..."
 		cxt.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 
 	if !admHandler.sessionHa.DeleteSession(cxt){
-		response.status = "Internal server Error..."
+		response.Status = "Internal server Error..."
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	response.status = "Successfully loged out..."
+	response.Status = "Successfully loged out..."
 	cxt.IndentedJSON(http.StatusOK,response)
 }
 

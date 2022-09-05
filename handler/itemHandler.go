@@ -14,44 +14,44 @@ import (
 
 type ItemHandler struct{
 	itemServ item.ItemService
-	sessionHa *SessionHandler
 	cataSrv catagory.CatagoryService
+	sessionHa *SessionHandler
 }
 
-func NewItemHandler(itemServ item.ItemService, sessionHa *SessionHandler)ItemHandler{
-	return ItemHandler{itemServ: itemServ,sessionHa:sessionHa}
+func NewItemHandler(itemServ item.ItemService,cataSrv catagory.CatagoryService, sessionHa *SessionHandler)ItemHandler{
+	return ItemHandler{itemServ: itemServ,cataSrv:cataSrv,sessionHa:sessionHa}
 }
 
 func (itemHandler *ItemHandler)GetItems(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 
 	response := &struct{
-		status string
-		items [] entity.Item
+		Status string
+		Items [] entity.Item
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 
 	sess := itemHandler.sessionHa.GetSession(ctx)
-	if sess != nil {
+	if sess == nil {
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
 	items,ers:=itemHandler.itemServ.GetItems()
 	if  len (ers)>0 {
-		response.status = "Internal Server Error"
+		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 
 	if len(items)==0 {
-		response.status = "No item added yet"
+		response.Status = "No item added yet"
 		ctx.IndentedJSON(http.StatusOK,response)
 		return
 	}
-	response.status = "items retrieved successfully"
-	response.items = items
+	response.Status = "items retrieved successfully"
+	response.Items = items
 	ctx.JSON(200,items)
 
 
@@ -59,113 +59,114 @@ func (itemHandler *ItemHandler)GetItems(ctx *gin.Context){
 func (itemHandler *ItemHandler)GetItem(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
-		item *entity.Item
+		Status string
+		Item *entity.Item
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 
 	sess := itemHandler.sessionHa.GetSession(ctx)
-	if sess != nil {
+	if sess == nil {
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
-
 	id,e:= strconv.Atoi(ctx.Param("id")) 
 	if  e != nil {
-		response.status = "bad request..."
+		response.Status = "bad request..."
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
 	item,ers:=itemHandler.itemServ.GetItem(uint(id))
 	if  len (ers)>0 {
-		response.status = "No such Item"
+		response.Status = "No such Item"
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
-	response.status = "Item fetched"
-	response.item = item
+	response.Status = "Item fetched"
+	response.Item = item
 	ctx.IndentedJSON(http.StatusOK,response)
 }
 
 func (itemHandler *ItemHandler)CreateItem(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
-		item *entity.Item
+		Status string
+		Item entity.Item
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		name string
-		description string
-		brand string
-		imageurl string
-		price float64
-		number int
-		production_date time.Time
-		expire_date time.Time
+		Name string
+		Description string
+		Brand string
+		Imageurl string
+		Price float64
+		Number int
+		// Production_date time.Time
+		// Expire_date time.Time
 	}{}
 	sess := itemHandler.sessionHa.GetSession(ctx)
-	if sess != nil || sess.Role !="Admin"{
+	if sess == nil || sess.Role !="Admin"{
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 
-	e := ctx.BindJSON(&input)
-	if e != nil{
-		response.status = "failed to bind input"
+	if e := ctx.BindJSON(&input); e != nil{
+		response.Status = "failed to bind input"
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
-	if input.name == "" || input.description== "" || input.brand == "" || input.imageurl == "" || input.production_date.String() == "" || input.expire_date.String()== "" || input.price <= 0 || input.number <=0{
-		response.status = "Incorrect input..."
+	if input.Name == "" || input.Description== "" || input.Brand == "" || input.Imageurl == "" || input.Price <= 0 || input.Number <=0{
+		response.Status = "Incorrect input..."
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 
-	if input.expire_date.Before(time.Now()){
-		response.status = "this Item is expired..."
-		ctx.IndentedJSON(http.StatusNotFound,response)
-		return
-	}
-	items,ers := itemHandler.itemServ.GetItems()
+	// if input.Expire_date.Before(time.Now()){
+	// 	response.Status = "this Item is expired..."
+	// 	ctx.IndentedJSON(http.StatusNotFound,response)
+	// 	return
+	// }
+	// items,ers := itemHandler.itemServ.GetItems()
 
-	if len(ers)>0{
-		response.status = "Internal Server Error ..."
-		ctx.IndentedJSON(http.StatusInternalServerError,response)
-		return
-	}
+	// if len(ers)>0{
+	// 	response.Status = "Internal Server Error ..."
+	// 	ctx.IndentedJSON(http.StatusInternalServerError,response)
+	// 	return
+	// }
 
-	for _,item := range items{
-		if item.Name == input.name{
-			response.status = "Item name already exist..."
-			ctx.IndentedJSON(http.StatusNotFound,response)
-			return
-		}
+	// for _,item := range items{
+	// 	if item.Name == input.Name{
+	// 		response.Status = "Item name already exist..."
+	// 		ctx.IndentedJSON(http.StatusNotFound,response)
+	// 		return
+	// 	}
+	// }
+	if itemHandler.itemServ.IsItemNameExist(input.Name) != nil{
+		response.Status = "Item name already exist..."
+	 	ctx.IndentedJSON(http.StatusNotFound,response)
+	 	return
 	}
 	item:=entity.Item{
-		Name:input.name,
-		Brand:input.brand,
-		Description: input.description,
-		Image: input.imageurl,
-		Price: input.price,
-		Number: input.number,
-		ProductionDate:input.production_date,
-		ExpireDate : input.expire_date,
+		Name:input.Name,
+		Description: input.Description,
+		Brand:input.Brand,
+		Image: input.Imageurl,
+		Price: input.Price,
+		Number: input.Number,
+		ProductionDate:time.Now().AddDate(-1,5,12),
+		ExpireDate : time.Now().AddDate(1,2,5),
 	}
-
-
 	itm,ers:= itemHandler.itemServ.CreateItem(item)
 	if len(ers) >0{
-		response.status = "Internal Server Error ..."
+		response.Status = "Internal Server Error ..."
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
-	response.status = "Item create successful"
-	response.item = itm
+	response.Status = "Item create successful"
+	response.Item = *itm
 
 	ctx.IndentedJSON(http.StatusCreated,response)
 
@@ -174,22 +175,21 @@ func (itemHandler *ItemHandler)CreateItem(ctx *gin.Context){
 func (itemHandler *ItemHandler)UpdateItem(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
-		item *entity.Item
+		Status string
+		Item *entity.Item
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	input := &struct{
-		name string
-		description string
-		brand string
-		imageurl string
-		price float64
-		production_date time.Time
-		expire_date time.Time
+		Name string
+		Description string
+		Brand string
+		Imageurl string
+		Price float64
+		
 	}{}
 	sess := itemHandler.sessionHa.GetSession(ctx)
-	if sess != nil || sess.Role !="Admin"{
+	if sess == nil || sess.Role !="Admin"{
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
@@ -198,18 +198,24 @@ func (itemHandler *ItemHandler)UpdateItem(ctx *gin.Context){
 		ctx.JSON(404,e)
 	}
 
-	if input.name == "" || input.description== "" || input.brand == "" || input.imageurl == "" || input.production_date.String() =="" || input.expire_date.String() == "" || input.price <= 0{
-		response.status = "Incorrect input..."
+	if input.Name == "" || input.Description== "" || input.Brand == "" || input.Imageurl == "" || input.Price <= 0{
+		response.Status = "Incorrect input..."
 		ctx.IndentedJSON(http.StatusNotFound,response)
 		return
 	}
 	id,_:= strconv.Atoi(ctx.Param("id"))
 	
 	item,ers := itemHandler.itemServ.GetItem(uint(id))
+
+	if len(ers) >0{
+		response.Status = "Internal Server Error ..."
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
 	
-	if item.Name != input.name{
-		if itemHandler.itemServ.IsItemNameExist(input.name) != nil{
-			response.status = "Item name already exist..."
+	if item.Name != input.Name{
+		if itemHandler.itemServ.IsItemNameExist(input.Name) != nil{
+			response.Status = "Item name already exist..."
 			ctx.IndentedJSON(http.StatusNotFound,response)
 			return
 		}
@@ -217,86 +223,85 @@ func (itemHandler *ItemHandler)UpdateItem(ctx *gin.Context){
 	}
 
 	itm:=entity.Item{
-		Name:input.name,
-		Brand:input.brand,
-		Description: input.description,
-		Image: input.imageurl,
-		Price: input.price,
-		ProductionDate:input.production_date,
-		ExpireDate : input.expire_date,
+		Name:input.Name,
+		Brand:input.Brand,
+		Description: input.Description,
+		Image: input.Imageurl,
+		Price: input.Price,
 	}
-	item.ID = uint(id)
+	itm.ID = uint(id)
 	item,ers = itemHandler.itemServ.UpdateItem(itm)
 	if ers != nil{
-		response.status = "Internal Server Error ..."
+		response.Status = "Internal Server Error ..."
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
-	response.status = "upadate succeful"
-	response.item = item
+	response.Status = "upadate succeful"
+	response.Item = item
 	ctx.JSON(200,response)
 }
 
 func (itemHandler *ItemHandler)DeleteItem(ctx *gin.Context){
 	ctx.Header("Content-Type","application/json")
 	response := &struct{
-		status string
-		item *entity.Item
+		Status string
+		Item *entity.Item
 	}{
-		status:"Unauthorized user",
+		Status:"Unauthorized user",
 	}
 	sess := itemHandler.sessionHa.GetSession(ctx)
-	if sess != nil || sess.Role !="Admin"{
+	if sess == nil || sess.Role !="Admin"{
 		ctx.IndentedJSON(http.StatusUnauthorized,response)
 		return
 	}
 	
 	id,e:= strconv.Atoi(ctx.Param("id"))
 	if e != nil{
-		response.status = "Incorrect Format..." 
+		response.Status = "Incorrect Format..." 
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 
-	itm,ers:= itemHandler.itemServ.GetItem(uint(id))
-	if len(ers)>0{
-		response.status = "No such user..." 
-		ctx.IndentedJSON(http.StatusUnauthorized,response)
+	item,ers:= itemHandler.itemServ.GetItem(uint(id))
+	
+	if len(ers)>0 || item == nil{
+		response.Status = "No such Item..." 
+		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
 	
-	itm,ers = itemHandler.itemServ.DeleteItem(uint(id))
-	if ers != nil{
-		response.status = "Internal Server Error ..."
+	item,ers = itemHandler.itemServ.DeleteItem(uint(id))
+	if len(ers) >0{
+		response.Status = "Internal Server Error ..."
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
-	catagories,ers:= itemHandler.cataSrv.GetCatagories()
-	if ers != nil{
-		response.status = "Internal Server Error ..."
-		ctx.IndentedJSON(http.StatusInternalServerError,response)
-		return
-	}
+	// catagories,ers:= itemHandler.cataSrv.GetCatagories()
+	// if len(ers) >0{
+	// 	response.Status = "No catagory Added yet..."
+	// 	ctx.IndentedJSON(http.StatusInternalServerError,response)
+	// 	return
+	// }
 
-	for _,cata := range catagories{
-		check := false
-		for _,itm_Id := range cata.Items_Id{
-			if itm_Id != itm.ID{
-				cata.Items_Id = append(cata.Items_Id, itm_Id)
-			}else{
-				check = true
-			}
-		}
-		if check{
-			_,ers := itemHandler.cataSrv.UpdateCatagory(cata)
-			if len(ers)>0{
-				response.status = "Internal Server Error ..."
-				ctx.IndentedJSON(http.StatusInternalServerError,response)
-				return
-			}
-		}
-	}
-	response.status = "Delete successful"
-	response.item = itm
+	// for _,cata := range catagories{
+	// 	check := false
+	// 	for _,itm := range cata.Items{
+	// 		if item.ID != itm.ID{
+	// 			cata.Items = append(cata.Items, itm)
+	// 		}else{
+	// 			check = true
+	// 		}
+	// 	}
+	// 	if check{
+	// 		_,ers := itemHandler.cataSrv.UpdateCatagory(cata)
+	// 		if len(ers)>0{
+	// 			response.Status = "Internal Server Error ..."
+	// 			ctx.IndentedJSON(http.StatusInternalServerError,response)
+	// 			return
+	// 		}
+	// 	}
+	// }
+	response.Status = "Delete successful"
+	response.Item = item
 	ctx.JSON(200,response)
 }

@@ -2,7 +2,7 @@ package repository
 
 import (
 	"log"
-
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
 	"github.com/motikingo/ecommerceRESTAPI-Go/customer"
@@ -38,7 +38,7 @@ func(usrRepo *UserRepo)GetUser(id uint)(*entity.Customer,[]error){
 
 func (usrRepo *UserRepo) GetUserByUserName(name string) *entity.Customer {
 	var user entity.Customer
-	errs := usrRepo.db.First(&user,name).GetErrors()	
+	errs := usrRepo.db.Where("user_name=?",name).First(&user).GetErrors()	
 	if len(errs)>0{
 		return nil
 	}
@@ -48,7 +48,7 @@ func (usrRepo *UserRepo) GetUserByUserName(name string) *entity.Customer {
 
 func (usrRepo *UserRepo)GetUserByEmail(email string)bool{
 	var user entity.Customer
-	errs := usrRepo.db.First(&user,email).GetErrors()	
+	errs := usrRepo.db.Where("email=?",email).First(&user).GetErrors()	
 	return errs ==nil
 }
 
@@ -60,19 +60,13 @@ func(usrRepo *UserRepo) CreateUser(user entity.Customer)(*entity.Customer,[]erro
 		log.Fatal("this user is already exist")
 		return nil,ers
 		
-	}else if usr==nil && len(ers)>0{
-
-		errs := usrRepo.db.Create(&user).GetErrors()
-		if len(errs)>0 {
-			return nil,errs
-		}
-		return &user,nil
-
-		  
-	}else{
-		log.Fatal(ers)
 	}
-	return nil,nil
+	fmt.Println("here")
+	
+	if errs := usrRepo.db.Create(&user).GetErrors();len(errs)>0 {
+		return nil,errs
+	}
+	return &user,nil
 	
 }
 
@@ -109,8 +103,8 @@ func(usrRepo *UserRepo) DeleteUser(id uint)(*entity.Customer,[]error){
 
 	if usr!=nil && len(ers)==0 {
 
-		errs := usrRepo.db.Delete(&usr).GetErrors()
-		if len(errs)>0 {
+		
+		if errs := usrRepo.db.Delete(&usr).GetErrors(); len(errs)>0 {
 			return nil,errs
 		}
 		return usr,nil

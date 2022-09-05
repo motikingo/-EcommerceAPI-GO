@@ -35,7 +35,6 @@ func Connect() *gorm.DB{
 		log.Fatal(err)
 		return nil
 	}
-	defer db.Close()
 
 	return db
 }
@@ -44,5 +43,6 @@ func MigrateModel(db *gorm.DB){
 	db.Debug().AutoMigrate(&entity.Customer{})
 	db.Debug().AutoMigrate(&entity.Catagory{})
 	db.Debug().AutoMigrate(&entity.Item{})
-	db.Debug().AutoMigrate(&entity.Cart{})
+	db.Debug().AutoMigrate(&entity.Record{})
+	db.Debug().AutoMigrate(&entity.CartInfo{})	
 }
