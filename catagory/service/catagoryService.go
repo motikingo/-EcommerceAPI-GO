@@ -9,54 +9,54 @@ type catagoryServc struct {
 	repo catagory.CatagoryRepository
 }
 
-func NewCatagoryServ(repo catagory.CatagoryRepository) catagory.CatagoryService{ 
+func NewCatagoryServ(repo catagory.CatagoryRepository) catagory.CatagoryService {
 	return &catagoryServc{repo: repo}
 }
 
 func (catServc *catagoryServc) GetCatagories() ([]entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.GetCatagories()
-	if len(ers)>0{
-		return nil,ers
+	cat, ers := catServc.repo.GetCatagories()
+	if len(ers) > 0 {
+		return nil, ers
 	}
-	return cat,nil
+	return cat, nil
 }
 func (catServc *catagoryServc) GetCatagory(id uint) (*entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.GetCatagory(id)
-	if len(ers)>0{
-		return nil,ers
+	cat, ers := catServc.repo.GetCatagory(id)
+	if len(ers) > 0 {
+		return nil, ers
 	}
-	return cat,nil
+	return cat, nil
 
 }
 
-func (catServc *catagoryServc)IsCatagoryNameExist(name string) bool{
+func (catServc *catagoryServc) IsCatagoryNameExist(name string) bool {
 	return catServc.repo.IsCatagoryNameExist(name)
 }
 
 func (catServc *catagoryServc) UpdateCatagory(ct entity.Catagory) (*entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.UpdateCatagory(ct)
-	if len(ers)>0{
-		return nil,ers
+	cat, ers := catServc.repo.UpdateCatagory(ct)
+	if len(ers) > 0 {
+		return nil, ers
 	}
-	return cat,nil
+	return cat, nil
 
 }
 func (catServc *catagoryServc) CreateCatagory(ct entity.Catagory) (*entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.CreateCatagory(ct)
-	if len(ers)>0{
-		return nil,ers
+	cat, ers := catServc.repo.CreateCatagory(ct)
+	if len(ers) > 0 {
+		return nil, ers
 	}
-	return cat,nil
+	return cat, nil
 }
 func (catServc *catagoryServc) DeleteCatagory(id uint) (*entity.Catagory, []error) {
 
-	cat,ers:= catServc.repo.DeleteCatagory(id)
-	if len(ers)>0{
-		return nil,ers
+	cat, ers := catServc.repo.DeleteCatagory(id)
+	if len(ers) > 0 {
+		return nil, ers
 	}
-	return cat,nil
+	return cat, nil
 }
