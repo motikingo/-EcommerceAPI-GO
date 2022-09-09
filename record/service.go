@@ -8,6 +8,7 @@ type RecordService interface{
 	GetRecordByUserID(user_Id uint)*entity.Record
 	UpdateRecord(car entity.Record)(*entity.Record)
 	CreateRecord(reco entity.Record)(*entity.Record)
+	CreateInfo(info entity.CartInfo)(*entity.CartInfo)
 	ClearRecord(id uint)(*entity.Record)
 
 }

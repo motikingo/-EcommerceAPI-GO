@@ -395,10 +395,13 @@ func(usrHandler *UserHandler) AddItemToMyCart(ctx * gin.Context){
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
-	cart.Items[input.Item_Id] = entity.ItemInfo{
-		Number: input.HowMany,
+	
+	cart.Items = append(cart.Items, entity.ItemInfo{
+		ItemId : input.Item_Id,
+		ItemName:item.Name,
+		Number:  input.HowMany,
 		ItemBill:float64(input.HowMany) * item.Price,
-	}
+	})
 
 	if ! usrHandler.cartHa.UpdateCart(*cart,ctx) {
 		response.Status = "Internal Server Error"
@@ -407,10 +410,10 @@ func(usrHandler *UserHandler) AddItemToMyCart(ctx * gin.Context){
 	}
 
 	item.Number  = item.Number - input.HowMany
-	item,ers = usrHandler.itemSrv.UpdateItem(*item)
+	_,ers = usrHandler.itemSrv.UpdateItem(*item)
 
 	if len(ers)>0{
-		delete(cart.Items,item.ID)
+		cart.Items = cart.Items[:len(cart.Items)-1]
 		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
@@ -454,19 +457,23 @@ func(usrHandler *UserHandler) DeleteItemFromMyCart(ctx * gin.Context){
 		ctx.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
-
-	delete(cart.Items,item.ID)
-
+	var items []entity.ItemInfo
+	for _,itmInfo:= range cart.Items{
+		if itmInfo.ItemId != item.ID{
+			items = append(items, itmInfo)
+		}
+	}
+	cart.Items = items 
 	if !usrHandler.cartHa.UpdateCart(*cart,ctx){
 		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
 	item.Number  = item.Number + cart.Items[item.ID].Number
-	item,ers = usrHandler.itemSrv.UpdateItem(*item)
+	_,ers = usrHandler.itemSrv.UpdateItem(*item)
 
 	if len(ers)>0{
-		delete(cart.Items,item.ID)
+		//cart.Items = append(cart.Items,)
 		response.Status = "Internal Server Error"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
@@ -479,8 +486,8 @@ func(usrHandler *UserHandler) DeleteItemFromMyCart(ctx * gin.Context){
 func(usrHandler *UserHandler) DeleteMyCart(ctx * gin.Context){
 
 	cart:= usrHandler.cartHa.DeleteCart(ctx)
-	for id,info := range cart.Items{
-		item,er:= usrHandler.itemSrv.GetItem(id)
+	for _, info := range cart.Items{
+		item,er:= usrHandler.itemSrv.GetItem(info.ItemId)
 		if len(er)>0{
 			ctx.IndentedJSON(http.StatusInternalServerError,gin.H{"status" : "No such Item"})
 			return
@@ -533,30 +540,49 @@ func (usrHandler *UserHandler) Order(ctx *gin.Context){
 
 	if record ==nil{
 		reco := entity.Record{
-			CreateAt: time.Now(),
+			AddedAt: time.Now(),
 			UserId: sess.UserId,
-			Carts: make([]entity.CartInfo,0),
+			Cart_Infos: make([]entity.CartInfo,0),
 		}
 		
-		if rec := usrHandler.RecordSrv.CreateRecord(reco); rec == nil{
+		if record = usrHandler.RecordSrv.CreateRecord(reco); record == nil{
 			response.Status = "Internal Server Error"
 			ctx.IndentedJSON(http.StatusInternalServerError,response)
 			return
 		}
 		
 	}
-	record.Carts = append(record.Carts,entity.CartInfo{
-		//CreatedAt:time.Now(),
-		Cart:*cart,
-	}) 
-	reco := usrHandler.RecordSrv.UpdateRecord(*record)
+	cartInfo := &entity.CartInfo{
+		RecordUserId:record.UserId,
+		Item_Infos: make([]entity.ItemInfo, 0),
+	}
+	cartInfo = usrHandler.RecordSrv.CreateInfo(*cartInfo)
 
+	var items []entity.ItemInfo
+
+	for _,itm := range cart.Items{
+		//var item entity.ItemInfo
+		item := itm
+		item.CartInfoID = cartInfo.ID
+		//fmt.Println(cartInfo.ID)
+		items = append(items, item)
+	}
+	cartInfo.Item_Infos  = items
+	
+	record.Cart_Infos = append(record.Cart_Infos,*cartInfo) 
+	reco := usrHandler.RecordSrv.UpdateRecord(*record)
+	// fmt.Println("we here")
 	if reco == nil {
 		response.Status = "Internal Server Error user"
 		ctx.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
-
+	cart.Items = []entity.ItemInfo{}
+	if !usrHandler.cartHa.UpdateCart(*cart,ctx){
+		response.Status = "can't Empty Cart..."
+		ctx.IndentedJSON(http.StatusInternalServerError,response)
+		return
+	}
 	response.Status = "total bill calculated..."
 	response.Record = *record
 	ctx.IndentedJSON(200,response)

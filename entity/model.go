@@ -38,23 +38,28 @@ type Item struct{
 }
 
 type Record struct{
-	CreateAt time.Time
+	AddedAt time.Time
 	UserId uint `gorm:"Primary_Key:user_id"`
-	Carts []CartInfo
+	Cart_Infos []CartInfo
 }
 type CartInfo struct{
 	gorm.Model
-	//CreatedAt time.Time
-	Cart Cart
+	RecordUserId uint
+	Item_Infos []ItemInfo	 `json:"items"`
 }
+
 type Cart struct{
-	UserId uint				 `json:user_Id`
-	Items map[uint]ItemInfo	 `json:"items"`
-	jwt.StandardClaims
+	UserId uint			 `json:user_Id`
+	Items []ItemInfo	 `json:"items"`
+	jwt.RegisteredClaims
 }
 type ItemInfo struct{
+	ID uint 	`gorm:"Primary_Key:id; AUTO_INCREMENT"`
+	ItemId uint 
+	ItemName string 
 	Number int
 	ItemBill float64
+	CartInfoID uint
 }
 type Session struct{
 	UserId uint
@@ -62,6 +67,5 @@ type Session struct{
 	Email string
 	Role string
 	jwt.StandardClaims
-
 }
 

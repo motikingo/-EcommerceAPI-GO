@@ -40,8 +40,13 @@ func(carServ *RecordServ)CreateRecord(reco entity.Record)(*entity.Record){
 
 	return carServ.repo.CreateRecord(reco)
 }
+func (carServ *RecordServ) CreateInfo(info entity.CartInfo)(*entity.CartInfo){
+	return carServ.repo.CreateInfo(info)
+}
+
 func(carServ *RecordServ)ClearRecord(id uint)(*entity.Record){
 
 	return carServ.repo.ClearRecord(id)
 }
+
 

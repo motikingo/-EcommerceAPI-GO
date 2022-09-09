@@ -44,5 +44,6 @@ func MigrateModel(db *gorm.DB){
 	db.Debug().AutoMigrate(&entity.Catagory{})
 	db.Debug().AutoMigrate(&entity.Item{})
 	db.Debug().AutoMigrate(&entity.Record{})
-	db.Debug().AutoMigrate(&entity.CartInfo{})	
+	db.Debug().AutoMigrate(&entity.CartInfo{})
+	db.Debug().AutoMigrate(&entity.ItemInfo{})	
 }

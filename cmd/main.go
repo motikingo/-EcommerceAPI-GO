@@ -89,8 +89,6 @@ func main(){
 	r.GET("/MyRecord/user",secure.UserLogedIn(),recoHa.GetRecord)
 	r.GET("/ClearRecord/user",secure.UserLogedIn(),recoHa.ClearRecord)
 
-
-	
 	r.DELETE("/delete/",secure.UserLogedIn(),userHandler.DeleteAccount)
 
 	catHandler := handler.NewcatHandler(catservs,itemServ,&session)

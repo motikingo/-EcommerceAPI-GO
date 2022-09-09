@@ -3,10 +3,11 @@ package handler
 import (
 	"net/http"
 	"time"
+	
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/motikingo/ecommerceRESTAPI-Go/record"
 	"github.com/motikingo/ecommerceRESTAPI-Go/entity"
+	"github.com/motikingo/ecommerceRESTAPI-Go/record"
 )
 const(
 	cartSessionName = "cart" 
@@ -37,12 +38,12 @@ func(car *CartHandler) CreateCart(ctx *gin.Context){
 
 	cart := &entity.Cart{
 		UserId:sess.UserId,
-		Items:make(map[uint]entity.ItemInfo),
+		Items:make([]entity.ItemInfo,0),
 	}
 	expireTime := time.Now().Add(2*time.Hour)
 
-	cart.StandardClaims = jwt.StandardClaims{
-		ExpiresAt:expireTime.Unix(),
+	cart.RegisteredClaims = jwt.RegisteredClaims{
+		ExpiresAt:jwt.NewNumericDate(expireTime),
 	}
 	
 	tkn:= jwt.NewWithClaims(jwt.SigningMethodHS256,cart)
@@ -80,8 +81,8 @@ func(car *CartHandler) UpdateCart(cart entity.Cart,ctx *gin.Context)bool{
 		return false
 	}
 	expireTime := time.Now().Add(2 * time.Hour)
-	cart.StandardClaims = jwt.StandardClaims{
-		ExpiresAt:expireTime.Unix(),
+	cart.RegisteredClaims = jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(expireTime),
 	}
 	
 	tkn:= jwt.NewWithClaims(jwt.SigningMethodHS256,cart)
@@ -162,8 +163,8 @@ func(car *CartHandler) DeleteCart(ctx *gin.Context)*entity.Cart{
 
 	var c entity.Cart
 	expireTime := time.Now().Add(-1*time.Hour)
-	c.StandardClaims = jwt.StandardClaims{
-		ExpiresAt:expireTime.Unix(),
+	c.RegisteredClaims = jwt.RegisteredClaims{
+		ExpiresAt:jwt.NewNumericDate(expireTime),
 	}
 	tkn := jwt.NewWithClaims(jwt.SigningMethodHS256,c)
 	tknstr,er := tkn.SignedString(cartKey) 

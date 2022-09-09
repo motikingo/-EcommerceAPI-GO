@@ -36,7 +36,7 @@ func (admHandler *AdminHandler)GetAdmins(cxt *gin.Context){
 		return
 	}
 	if adms == nil{
-		cxt.IndentedJSON(http.StatusOK,"No Admin Found")
+		cxt.IndentedJSON(http.StatusNotFound,"No Admin Found")
 		return
 	}
 
@@ -128,7 +128,7 @@ func(admHandler *AdminHandler) CreateAdmin(cxt *gin.Context){
 	adm,ers:= admHandler.AdminSrv.CreateUser(admin)
 
 	if len(ers)> 0 {
-		response.Status = "Internal Server Error"
+		response.Status = "Can not Create Admin"
 		cxt.IndentedJSON(http.StatusInternalServerError,response)
 		return
 	}
@@ -190,7 +190,7 @@ func(admHandler *AdminHandler) ChangeProfile(cxt * gin.Context){
 	adm,ers = admHandler.AdminSrv.UpdateUser(admin)
 
 	if ers!=nil {
-		response.Status = "Internal Server Error"
+		response.Status = "Can not update Admin"
 		cxt.IndentedJSON(http.StatusBadRequest,response)
 		return
 	}
